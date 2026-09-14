@@ -20,24 +20,43 @@ has an IKMF trailer, unpack falls back to QEMU automatically.
 
 ## Pack a modified ramdisk
 
-IKMF re-signing is not included. After unpack + edit, pack a plaintext xz
-initrd and a kernel that skips IKMF when the ramdisk is already xz:
+After unpack + edit:
 
 ```
 ./build.sh pack_bin 10001 4.0.311 0 -xzskip
 ```
 
-`pack_iso` accepts the same `-xzskip` flag. Verified on 4.0.311 x64.
+That does three things:
+
+1. Compress the edited ext4 as plaintext xz.
+2. Append a 0x194 IKMF MD5 trailer (`tools/ikmf_sign_initrd.py`) so unmodified
+   `ik_core.ko` accepts the ramdisk.
+3. Patch `vmlinuz` so an already-xz ramdisk skips IKMF decrypt, and so the
+   mapped initrd is copied into `j4m2zc` / `k7p9vn` (the two kernel globals
+   `ik_core` hashes). Cave is the IKMF-parse bytes that jump skips.
+
+`pack_iso` accepts the same `-xzskip` flag. Verified on 4.0.311 x64 with
+stock `ik_core.ko`: guest `/proc/uptime` advanced past 1000s with no wrap.
 
 ## Trailer
 
-Last 0x294 bytes of `initrd_length`:
+Official encrypted `boot/rootfs` ends with 0x294 bytes (0x194 prefix + 256-byte
+RSA). `ik_core` hashes `k7p9vn - 0x194` bytes and compares 16 bytes at that
+offset; packed xz-skip images therefore append only the 0x194 prefix:
 
 | offset | size | field |
 |--------|------|--------|
-| 0      | 16   | seed material (not the working cipher key) |
-| 16     | 4    | nibble-CRC hash of the plaintext xz (little-endian, double-hash) |
+| 0      | 16   | md3 (`MD5(md2)`, see below) |
+| 16     | 4    | dword mixed into md2 |
 | 20     | 4    | `IKMF` |
 | 24     | 4    | version (3 on 4.0.311) |
 | 36     | 8    | plaintext/body length |
-| 0x194  | 256  | RSA signature of the preceding bytes |
+| 44     | 8    | body length (copy) |
+
+md chain used by `ik_core`:
+
+```
+md1 = MD5(body)
+md2 = MD5(md1[8:16] + md1[0:8] + dword)
+md3 = MD5(md2)
+```

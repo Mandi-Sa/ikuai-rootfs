@@ -493,8 +493,14 @@ function pack_rootfs () {
             exit 1
         fi
         mv "$work_dir/vmlinuz.xzskip" "$unpack_dir/vmlinuz"
-        log INFO "Use plaintext xz initrd (no IKMF re-encrypt)"
-        cp "$work_dir/rootfs.img.xz" "$work_dir/rootfs.img.xz.bin"
+        log INFO "Append 0x194 IKMF MD5 trailer for official ik_core"
+        python3 "$tools_dir/ikmf_sign_initrd.py" \
+            "$work_dir/rootfs.img.xz" "$work_dir/rootfs.img.xz.ikmf"
+        if [ $? -ne 0 ]; then
+            log ERROR "IKMF sign initrd fail!"
+            exit 1
+        fi
+        cp "$work_dir/rootfs.img.xz.ikmf" "$work_dir/rootfs.img.xz.bin"
         if [ "$grub" != "" ]; then
             cat "$grub_file" >> "$work_dir/rootfs.img.xz.bin"
         fi
@@ -997,7 +1003,8 @@ Commands:
   pack_bin [firmware_id] [version] [build_time] [-v1|-v2|-v3|-xzskip] [-p PRIVATE_KEY]
       pack bin file
       -v3 -p PRIVATE_KEY  Use v3 format with specified RSA private key for signing
-      -xzskip             plaintext xz initrd + xz-skip kernel (4.0.306+ x64)
+      -xzskip             plaintext xz + 0x194 IKMF MD5 trailer + xz-skip kernel
+                          that fills j4m2zc/k7p9vn (4.0.306+ x64, stock ik_core)
                           auto-selected after a QEMU/IKMF unpack
 
   pack_iso [firmware_id] [version] [build_time] [-v1|-v2|-v3|-xzskip] [-p PRIVATE_KEY]

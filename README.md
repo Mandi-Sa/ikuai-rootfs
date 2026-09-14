@@ -77,4 +77,4 @@ Examples:
   ./build.sh patch xxx.bin bin patch_dir "" "" 202509221910
 ```
 
-4.0.306+ x64 (`IKMF` trailer) cannot be decrypted by `-v3`. Unpack boots the official kernel in QEMU and copies the plaintext xz at `unxz()` (needs root, KVM, `qemu-system-x86_64`). After unpack, `pack_bin` / `pack_iso` without extra flags emit a plaintext xz initrd plus a kernel that skips IKMF when the ramdisk is already xz. Details: [tools/ikmf.md](tools/ikmf.md).
+4.0.306+ x64 (`IKMF` trailer) cannot be decrypted by `-v3`. Unpack boots the official kernel in QEMU and copies the plaintext xz at `unxz()` (needs root, KVM, `qemu-system-x86_64`). After unpack, `pack_bin` / `pack_iso` without extra flags emit a plaintext xz initrd, a 0x194 IKMF MD5 trailer, and a kernel that skips IKMF decrypt then copies the ramdisk into `j4m2zc`/`k7p9vn` so stock `ik_core.ko` accepts it. Details: [tools/ikmf.md](tools/ikmf.md).
