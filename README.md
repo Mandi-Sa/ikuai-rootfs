@@ -62,15 +62,19 @@ Examples:
   ./build.sh unpack xxx.iso -v2
   ./build.sh unpack xxx.iso -v3
   ./build.sh unpack xxx.iso -v3 -u public.pem
+  ./build.sh unpack xxx.iso -qemu
   ./build.sh patch_kernel -u old_public.pem -n new_public.pem
   ./build.sh patch_kernel -i rootfs-unpack/vmlinuz -o work/vmlinuz.patched -u old_public.pem -n new_public.pem
   ./build.sh unpack xxx.bin
   ./build.sh pack_rootfs
   ./build.sh pack_bin Id Version 0
   ./build.sh pack_bin Id Version 0 -v3 -p private.pem
+  ./build.sh pack_bin Id Version 0 -xzskip
   ./build.sh pack_iso
   ./build.sh pack_iso "" "" "" -v3 -p private.pem
   ./build.sh patch xxx.iso iso patch_dir
   ./build.sh patch xxx.iso iso patch_dir "" "" "" -v3 -u old_public.pem -n new_public.pem -p private.pem
   ./build.sh patch xxx.bin bin patch_dir "" "" 202509221910
 ```
+
+4.0.306+ x64 (`IKMF` trailer) cannot be decrypted by `-v3`. Unpack boots the official kernel in QEMU and copies the plaintext xz at `unxz()` (needs root, KVM, `qemu-system-x86_64`). After unpack, `pack_bin` / `pack_iso` without extra flags emit a plaintext xz initrd plus a kernel that skips IKMF when the ramdisk is already xz. Details: [tools/ikmf.md](tools/ikmf.md).
